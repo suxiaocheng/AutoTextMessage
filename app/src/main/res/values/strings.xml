@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">AutoTextMessage</string>
+    <string name="enable_auto_text"></string>
+    <string name="add_item">Add</string>
+    <string name="open_log">Log</string>
+    <string name="title_activity_setting_item">SettingItemActivity</string>
+    <string name="setting_phone_number">Phone</string>
+    <string name="setting_day_of_week">Day</string>
+    <string name="setting_time">Time</string>
+    <string name="setting_repeatable">Repeat</string>
+    <string name="setting_message_content">Message</string>
+    <string name="setting_sim_card">SimCard</string>
+    <string name="setting_tag">TAG</string>
+    <string name="setting_confirm">Confirm</string>
+    <string name="setting_cancel">Cancel</string>
+    <string name="week_data_empty">No day of week has been set</string>
+</resources>
