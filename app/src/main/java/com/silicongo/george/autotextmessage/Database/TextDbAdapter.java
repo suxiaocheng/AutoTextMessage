@@ -1,9 +1,11 @@
-package com.silicongo.george.autotextmessage;
+package com.silicongo.george.autotextmessage.Database;
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+
+import com.silicongo.george.autotextmessage.DataSet.SimplePropertyCollection;
+import com.silicongo.george.autotextmessage.DataSet.TextMsgInfo;
 
 /**
  * Created by suxch on 2016/1/3.

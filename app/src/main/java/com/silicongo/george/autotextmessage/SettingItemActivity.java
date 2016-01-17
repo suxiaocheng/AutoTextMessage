@@ -1,116 +1,83 @@
 package com.silicongo.george.autotextmessage;
 
-import android.app.AlertDialog;
-import android.app.Dialog;
 import android.app.DialogFragment;
-import android.app.TimePickerDialog;
-import android.content.DialogInterface;
-import android.database.Cursor;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.BaseAdapter;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
-import android.widget.TimePicker;
 import android.widget.Toast;
 
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.FormatFlagsConversionMismatchException;
+import com.silicongo.george.autotextmessage.DataSet.TextMsgInfoParcelable;
+import com.silicongo.george.autotextmessage.Database.TextDbAdapter;
+import com.silicongo.george.autotextmessage.setting.DayOfWeekPickerDialogFragment;
+import com.silicongo.george.autotextmessage.setting.SettingMessageContent;
+import com.silicongo.george.autotextmessage.setting.SettingPhoneNumberDialogFragment;
+import com.silicongo.george.autotextmessage.setting.SettingSIMCard;
+import com.silicongo.george.autotextmessage.setting.SettingTag;
+import com.silicongo.george.autotextmessage.setting.TimePickerFragment;
+
+import com.silicongo.george.autotextmessage.DataSet.TextMsgInfo;
+
+import org.w3c.dom.Text;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import butterknife.OnClick;
 
-public class SettingItemActivity extends AppCompatActivity {
+public class SettingItemActivity extends AppCompatActivity implements ListView.OnItemClickListener,
+        TimePickerFragment.NoticeDialogListener, DayOfWeekPickerDialogFragment.NoticeDialogListener,
+        SettingPhoneNumberDialogFragment.NoticeDialogListener, SettingTag.NoticeDialogListener,
+        SettingSIMCard.NoticeDialogListener, SettingMessageContent.NoticeDialogListener{
 
-    @Bind(R.id.btSettingPhoneNumber)
-    Button btSettingPhoneNumber;
-    @OnClick(R.id.btSettingPhoneNumber)
-    void settingPhoneNumber() {
-        DialogFragment newFragment = new SettingPhoneNumberDialogFragment();
-        newFragment.show(getFragmentManager(), "phonePicker");
-    }
-    @Bind(R.id.tvPhoneNumber)
-    TextView tvPhoneNumber;
-    @Bind(R.id.btDayOfWeek)
-    Button btDayOfWeek;
-    @OnClick(R.id.btDayOfWeek)
-    void settingDayOfWeek() {
-        DialogFragment newFragment = new DayOfWeekPickerDialogFragment();
-        newFragment.show(getFragmentManager(), "dayOfWeekPicker");
-    }
-    @Bind(R.id.tvDayofWeek)
-    TextView tvDayofWeek;
-    @Bind(R.id.btTime)
-    Button btTime;
-    @OnClick(R.id.btTime)
-    void settingTime() {
-        DialogFragment newFragment = new TimePickerFragment();
-        newFragment.show(getFragmentManager(), "timePicker");
-    }
-    @Bind(R.id.tvTime)
-    TextView tvTime;
-    @Bind(R.id.btMessageContent)
-    Button btMessageContent;
-    @OnClick(R.id.btMessageContent)
-    void settingMessageContent() {
-        textMsgInfo.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE+"0").set("Text Only");
-        updateDisplayUI();
-    }
-    @Bind(R.id.tvMessageContent)
-    TextView tvMessageContent;
-    @Bind(R.id.btSimCard)
-    Button btSimCard;
-    @OnClick(R.id.btSimCard)
-    void settingSimCard() {
-        updateDisplayUI();
-    }
-    @Bind(R.id.tvSimCard)
-    TextView tvSimCard;
-    @Bind(R.id.btTag)
-    Button btTag;
-    @OnClick(R.id.btTag)
-    void settingTag() {
-        updateDisplayUI();
-    }
-    @Bind(R.id.tvTag)
-    TextView tvTag;
-    @Bind(R.id.cbRepeatable)
-    CheckBox cbRepeatable;
-    @OnClick(R.id.cbRepeatable)
-    void settingRepeatable() {
-        textMsgInfo.get(TextMsgInfo.ROW_ID_REPEATABLE).set(cbRepeatable.isChecked());
-        updateDisplayUI();
-    }
+    private final static String TAG = "SettingItemActivity";
+    public final static String SETTING_RESULT = "SettingItemActivity.RESULT";
+
+    private String strSettingItem[];
+
+    @Bind(R.id.lvSetting)
+    ListView lvSetting;
+
+    private SettingItemAdapter settingItemAdapter;
+
     @Bind(R.id.btConfirm)
     Button btConfirm;
+
     @OnClick(R.id.btConfirm)
     void settingConfirm() {
         /* Check if the data is valid or not */
         String str = TextMsgInfo.checkTextMsgInfoValid(textMsgInfo);
-        if(str != null){
+        if (str != null) {
             Toast.makeText(this, str, Toast.LENGTH_LONG).show();
-        }else{
-            TextDbAdapter db = new TextDbAdapter(this);
-            db.open();
+        } else {
+            textMsgInfo.get(TextMsgInfo.ROW_ENABLE).set(true);
+            TextMsgInfoParcelable textMsgInfoParcelable = new TextMsgInfoParcelable(textMsgInfo);
+            Intent intent = new Intent();
+            intent.putExtra(SETTING_RESULT, textMsgInfoParcelable);
 
-            db.saveTextMsgInfo(textMsgInfo);
-
-            db.close();
+            setResult(0x1, intent);
             finish();
         }
     }
+
     @Bind(R.id.btCancel)
     Button btCancel;
+
     @OnClick(R.id.btCancel)
     void settingCancel() {
+        setResult(0x0);
+        finish();
     }
 
     /* Data */
@@ -132,151 +99,240 @@ public class SettingItemActivity extends AppCompatActivity {
             }
         });
 
-        textMsgInfo = new TextMsgInfo();
+        if(getIntent() == null) {
+            textMsgInfo = new TextMsgInfo();
+        }else{
+            TextMsgInfoParcelable textMsgInfoParcelable = getIntent().getParcelableExtra(SETTING_RESULT);
+            if(textMsgInfoParcelable != null) {
+                textMsgInfo = textMsgInfoParcelable.mData;
+            }else{
+                textMsgInfo = new TextMsgInfo();
+            }
+        }
 
         ButterKnife.bind(this);
+
+        strSettingItem = new String[]{this.getResources().getString(R.string.setting_phone_number),
+                this.getResources().getString(R.string.setting_time),
+                this.getResources().getString(R.string.setting_day_of_week),
+                this.getResources().getString(R.string.setting_message_content),
+                this.getResources().getString(R.string.setting_repeatable),
+                this.getResources().getString(R.string.setting_tag),
+                this.getResources().getString(R.string.setting_sim_card)};
+
+        settingItemAdapter = new SettingItemAdapter(this);
+        lvSetting.setAdapter(settingItemAdapter);
+
+        lvSetting.setOnItemClickListener(this);
     }
 
     @Override
-    public void onPause(){
+    public void onPause() {
         super.onPause();
     }
 
     @Override
-    public void onResume(){
+    public void onResume() {
         super.onResume();
-        updateDisplayUI();
     }
 
-    public void updateDisplayUI(){
-        tvPhoneNumber.setText(textMsgInfo.get(TextMsgInfo.ROW_PHONE_NUMBER).getString());
+    public String getDisplayString(int position) {
+        String strRet = "";
+        if ((position >= 0) && (position < strSettingItem.length)) {
+            switch (position) {
+                case 0:
+                    strRet = textMsgInfo.get(TextMsgInfo.ROW_PHONE_NUMBER).getString();
+                    break;
+                case 1:
+                    int hour = textMsgInfo.get(TextMsgInfo.ROW_TIME_HOUR).getInt();
+                    int minute = textMsgInfo.get(TextMsgInfo.ROW_TIME_MINUTE).getInt();
+                    strRet = String.format("%d:%d", hour, minute);
+                    break;
+                case 2:
+                    strRet = textMsgInfo.get(TextMsgInfo.ROW_WEEK_SUNDAY).getBool() ? "Sunday " : "";
+                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_MONDAY).getBool() ? "Monday " : "";
+                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_TUESDAY).getBool() ? "Tuesday " : "";
+                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).getBool() ? "Wednesday " : "";
+                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_THURSDAY).getBool() ? "Thursday " : "";
+                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_FRIDAY).getBool() ? "Friday " : "";
+                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_SATURDAY).getBool() ? "Saturday " : "";
 
-        int hour = textMsgInfo.get(TextMsgInfo.ROW_TIME_HOUR).getInt();
-        int minute = textMsgInfo.get(TextMsgInfo.ROW_TIME_MINUTE).getInt();
-        String str = String.format("%d:%d", hour, minute);
-        tvTime.setText(str);
+                    if (strRet.compareTo("") == 0) {
+                        strRet = getResources().getString(R.string.week_data_empty).toString();
+                    }
+                    break;
+                case 3:
+                    strRet = textMsgInfo.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString();
+                break;
+                case 4:
+                    strRet = textMsgInfo.get(TextMsgInfo.ROW_ID_REPEATABLE).getBool()?"Enable":"Disable";
+                    break;
+                case 5:
+                    strRet = textMsgInfo.get(TextMsgInfo.ROW_TEXT_TAG).getString();
+                    break;
+                case 6:
+                    strRet = Integer.toString(textMsgInfo.get(TextMsgInfo.ROW_SIM_CARD).getInt());
+                    break;
+                default:
+                    strRet = "";
+                    break;
+            }
+        }
+        return strRet;
+    }
 
-        str = textMsgInfo.get(TextMsgInfo.ROW_WEEK_SUNDAY).getBool()?"Sunday ":"";
-        str += textMsgInfo.get(TextMsgInfo.ROW_WEEK_MONDAY).getBool()?"Monday ":"";
-        str += textMsgInfo.get(TextMsgInfo.ROW_WEEK_TUESDAY).getBool()?"Tuesday ":"";
-        str += textMsgInfo.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).getBool()?"Wednesday ":"";
-        str += textMsgInfo.get(TextMsgInfo.ROW_WEEK_THURSDAY).getBool()?"Thursday ":"";
-        str += textMsgInfo.get(TextMsgInfo.ROW_WEEK_FRIDAY).getBool()?"Friday ":"";
-        str += textMsgInfo.get(TextMsgInfo.ROW_WEEK_SATURDAY).getBool()?"Saturday ":"";
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        DialogFragment newFragment;
+        Bundle bundle = new Bundle();
+        switch (position) {
+            case 0:
+                newFragment = new SettingPhoneNumberDialogFragment();
+                bundle.putString(SettingPhoneNumberDialogFragment.PHONE_NUMBER, textMsgInfo.get(TextMsgInfo.ROW_PHONE_NUMBER).getString());
+                newFragment.setArguments(bundle);
+                newFragment.show(getFragmentManager(), "phonePicker");
+                break;
+            case 1:
+                newFragment = new TimePickerFragment();
+                bundle.putInt(TimePickerFragment.HOUR, textMsgInfo.get(TextMsgInfo.ROW_TIME_HOUR).getInt());
+                bundle.putInt(TimePickerFragment.MINUTE, textMsgInfo.get(TextMsgInfo.ROW_TIME_MINUTE).getInt());
+                newFragment.setArguments(bundle);
+                newFragment.show(getFragmentManager(), "timePicker");
+                break;
+            case 2:
+                newFragment = new DayOfWeekPickerDialogFragment();
+                bundle.putBoolean(DayOfWeekPickerDialogFragment.SUNDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_SUNDAY).getBool());
+                bundle.putBoolean(DayOfWeekPickerDialogFragment.MONDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_MONDAY).getBool());
+                bundle.putBoolean(DayOfWeekPickerDialogFragment.TUESDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_TUESDAY).getBool());
+                bundle.putBoolean(DayOfWeekPickerDialogFragment.WEDNESDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).getBool());
+                bundle.putBoolean(DayOfWeekPickerDialogFragment.THURSDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_THURSDAY).getBool());
+                bundle.putBoolean(DayOfWeekPickerDialogFragment.FRIDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_FRIDAY).getBool());
+                bundle.putBoolean(DayOfWeekPickerDialogFragment.SATURDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_SATURDAY).getBool());
+                newFragment.setArguments(bundle);
+                newFragment.show(getFragmentManager(), "dayOfWeekPicker");
+                break;
+            case 3:
+                newFragment = new SettingMessageContent();
+                bundle.putString(SettingMessageContent.MESSAGE_CONTENT, textMsgInfo.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE+"0").getString());
+                newFragment.setArguments(bundle);
+                newFragment.show(getFragmentManager(), "settingMessageContent");
+                break;
+            case 4:
+                textMsgInfo.get(TextMsgInfo.ROW_ID_REPEATABLE).set(!textMsgInfo.get(TextMsgInfo.ROW_ID_REPEATABLE).getBool());
+                settingItemAdapter.notifyDataSetChanged();
+                break;
+            case 5:
+                newFragment = new SettingTag();
+                bundle.putString(SettingTag.SETTING_TAG, textMsgInfo.get(TextMsgInfo.ROW_TEXT_TAG).getString());
+                newFragment.setArguments(bundle);
+                newFragment.show(getFragmentManager(), "settingTag");
+                break;
+            case 6:
+                newFragment = new SettingSIMCard();
+                bundle.putInt(SettingSIMCard.SIM_CARD, textMsgInfo.get(TextMsgInfo.ROW_SIM_CARD).getInt());
+                newFragment.setArguments(bundle);
+                newFragment.show(getFragmentManager(), "settingSimCard");
+                break;
+            default:
+                break;
+        }
+    }
 
-        if(str.compareTo("") != 0) {
-            tvDayofWeek.setText(str);
-        }else{
-            tvDayofWeek.setText(R.string.week_data_empty);
+    private class SettingItemAdapter extends BaseAdapter {
+        private LayoutInflater mInflater;//得到一个LayoutInfalter对象用来导入布局
+
+        /**
+         * 存放控件
+         */
+        public final class ViewHolder {
+            public TextView title;
+            public TextView information;
         }
 
-        tvMessageContent.setText(textMsgInfo.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE+"0").getString());
-
-        tvSimCard.setText(Integer.toString(textMsgInfo.get(TextMsgInfo.ROW_SIM_CARD).getInt()));
-        tvTag.setText(textMsgInfo.get(TextMsgInfo.ROW_TEXT_TAG).getString());
-    }
-
-    public static class TimePickerFragment extends DialogFragment
-            implements TimePickerDialog.OnTimeSetListener {
+        /**
+         * 构造函数
+         */
+        public SettingItemAdapter(Context context) {
+            this.mInflater = LayoutInflater.from(context);
+        }
 
         @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            // Use the current time as the default values for the picker
-            int hour = textMsgInfo.get(TextMsgInfo.ROW_TIME_HOUR).getInt();
-            int minute = textMsgInfo.get(TextMsgInfo.ROW_TIME_MINUTE).getInt();
-
-            // Create a new instance of TimePickerDialog and return it
-            return new TimePickerDialog(getActivity(), this, hour, minute,
-                    true);
+        public int getCount() {
+            return strSettingItem.length;//返回数组的长度
         }
 
-        public void onTimeSet(TimePicker view, int hourOfDay, int minute) {
-            textMsgInfo.get(TextMsgInfo.ROW_TIME_HOUR).set(hourOfDay);
-            textMsgInfo.get(TextMsgInfo.ROW_TIME_MINUTE).set(minute);
+        @Override
+        public Object getItem(int position) {
+            return strSettingItem[position];
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        /**
+         * 书中详细解释该方法
+         */
+        @Override
+        public View getView(final int position, View convertView, ViewGroup parent) {
+            ViewHolder holder;
+            //观察convertView随ListView滚动情况
+            Log.v("MyListViewBase", "getView " + position + " " + convertView);
+            if (convertView == null) {
+                convertView = mInflater.inflate(R.layout.content_setting_item, null);
+                holder = new ViewHolder();
+                /**得到各个控件的对象*/
+                holder.title = (TextView) convertView.findViewById(R.id.tvTitle);
+                holder.information = (TextView) convertView.findViewById(R.id.tvInformation);
+                convertView.setTag(holder);//绑定ViewHolder对象
+            } else {
+                holder = (ViewHolder) convertView.getTag();//取出ViewHolder对象
+            }
+            /**设置TextView显示的内容，即我们存放在动态数组中的数据*/
+            holder.title.setText(strSettingItem[position]);
+            holder.information.setText(getDisplayString(position));
+
+            return convertView;
         }
     }
 
-    public static class SettingPhoneNumberDialogFragment extends DialogFragment {
-        private EditText editText;
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-            // Get the layout inflater
-            LayoutInflater inflater = getActivity().getLayoutInflater();
-
-            View v = inflater.inflate(R.layout.setting_phone_number_dialog, null);
-            editText = (EditText)v.findViewById(R.id.etPhoneNumber);
-            editText.setText(textMsgInfo.get(TextMsgInfo.ROW_PHONE_NUMBER).getString());
-
-            // Inflate and set the layout for the dialog
-            // Pass null as the parent view because its going in the dialog layout
-            builder.setView(v)
-                    // Add action buttons
-                    .setPositiveButton(R.string.setting_confirm, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int id) {
-                            textMsgInfo.get(TextMsgInfo.ROW_PHONE_NUMBER).set(editText.getText().toString());
-                        }
-                    })
-                    .setNegativeButton(R.string.setting_cancel, new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int id) {
-                            SettingPhoneNumberDialogFragment.this.getDialog().cancel();
-                        }
-                    });
-            return builder.create();
+    public void onDialogPositiveClick(DialogFragment dialog, Intent intent) {
+        if (dialog instanceof TimePickerFragment) {
+            if (intent != null) {
+                textMsgInfo.get(TextMsgInfo.ROW_TIME_HOUR).set(intent.getIntExtra(TimePickerFragment.HOUR, 12));
+                textMsgInfo.get(TextMsgInfo.ROW_TIME_MINUTE).set(intent.getIntExtra(TimePickerFragment.MINUTE, 0));
+            }
+        } else if (dialog instanceof SettingPhoneNumberDialogFragment) {
+            if (intent != null) {
+                textMsgInfo.get(TextMsgInfo.ROW_PHONE_NUMBER).set(intent.getStringExtra(SettingPhoneNumberDialogFragment.PHONE_NUMBER));
+            }
+        } else if (dialog instanceof DayOfWeekPickerDialogFragment) {
+            if (intent != null) {
+                textMsgInfo.get(TextMsgInfo.ROW_WEEK_SUNDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.SUNDAY, false));
+                textMsgInfo.get(TextMsgInfo.ROW_WEEK_MONDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.MONDAY, false));
+                textMsgInfo.get(TextMsgInfo.ROW_WEEK_TUESDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.TUESDAY, false));
+                textMsgInfo.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.WEDNESDAY, false));
+                textMsgInfo.get(TextMsgInfo.ROW_WEEK_THURSDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.THURSDAY, false));
+                textMsgInfo.get(TextMsgInfo.ROW_WEEK_FRIDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.FRIDAY, false));
+                textMsgInfo.get(TextMsgInfo.ROW_WEEK_SATURDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.SATURDAY, false));
+            }
+        } else if(dialog instanceof SettingTag){
+            if(intent!=null){
+                textMsgInfo.get(TextMsgInfo.ROW_TEXT_TAG).set(intent.getStringExtra(SettingTag.SETTING_TAG));
+            }
+        } else if(dialog instanceof SettingSIMCard){
+            if(intent!=null){
+                textMsgInfo.get(TextMsgInfo.ROW_SIM_CARD).set(intent.getIntExtra(SettingSIMCard.SIM_CARD, 0));
+            }
+        }else if(dialog instanceof SettingMessageContent){
+            if(intent!=null){
+                textMsgInfo.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE+"0").set(intent.getStringExtra(SettingMessageContent.MESSAGE_CONTENT));
+            }
         }
+        settingItemAdapter.notifyDataSetChanged();
     }
 
-    public static class DayOfWeekPickerDialogFragment extends DialogFragment {
-        boolean[] initStatus = new boolean[7];
+    public void onDialogNegativeClick(DialogFragment dialog, Intent intent) {
 
-        @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-
-            initStatus[0] = textMsgInfo.get(TextMsgInfo.ROW_WEEK_SUNDAY).getBool();
-            initStatus[1] = textMsgInfo.get(TextMsgInfo.ROW_WEEK_MONDAY).getBool();
-            initStatus[2] = textMsgInfo.get(TextMsgInfo.ROW_WEEK_TUESDAY).getBool();
-            initStatus[3] = textMsgInfo.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).getBool();
-            initStatus[4] = textMsgInfo.get(TextMsgInfo.ROW_WEEK_THURSDAY).getBool();
-            initStatus[5] = textMsgInfo.get(TextMsgInfo.ROW_WEEK_FRIDAY).getBool();
-            initStatus[6] = textMsgInfo.get(TextMsgInfo.ROW_WEEK_SATURDAY).getBool();
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
-            // Set the dialog title
-            builder.setTitle(R.string.setting_day_of_week)
-                    // Specify the list array, the items to be selected by default (null for none),
-                    // and the listener through which to receive callbacks when items are selected
-                    .setMultiChoiceItems(R.array.day_of_week, initStatus,
-                            new DialogInterface.OnMultiChoiceClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which,
-                                                    boolean isChecked) {
-                                    initStatus[which] = isChecked;
-                                }
-                            })
-                            // Set the action buttons
-                    .setPositiveButton(R.string.setting_confirm, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int id) {
-                            // User clicked OK, so save the mSelectedItems results somewhere
-                            // or return them to the component that opened the dialog
-                            textMsgInfo.get(TextMsgInfo.ROW_WEEK_SUNDAY).set(initStatus[0]);
-                            textMsgInfo.get(TextMsgInfo.ROW_WEEK_MONDAY).set(initStatus[1]);
-                            textMsgInfo.get(TextMsgInfo.ROW_WEEK_TUESDAY).set(initStatus[2]);
-                            textMsgInfo.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).set(initStatus[3]);
-                            textMsgInfo.get(TextMsgInfo.ROW_WEEK_THURSDAY).set(initStatus[4]);
-                            textMsgInfo.get(TextMsgInfo.ROW_WEEK_FRIDAY).set(initStatus[5]);
-                            textMsgInfo.get(TextMsgInfo.ROW_WEEK_SATURDAY).set(initStatus[6]);
-                        }
-                    })
-                    .setNegativeButton(R.string.setting_cancel, new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int id) {
-                            dialog.cancel();
-                        }
-                    });
-
-            return builder.create();
-        }
     }
 }

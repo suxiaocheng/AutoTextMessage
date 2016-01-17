@@ -1,4 +1,4 @@
-package com.silicongo.george.autotextmessage;
+package com.silicongo.george.autotextmessage.DataSet;
 
 public class SimpleProperty {
 	public static final int TYPE_INT = 1;

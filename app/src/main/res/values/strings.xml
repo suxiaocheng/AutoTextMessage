@@ -14,4 +14,7 @@
     <string name="setting_confirm">Confirm</string>
     <string name="setting_cancel">Cancel</string>
     <string name="week_data_empty">No day of week has been set</string>
+    <string name="delete">Delete</string>
+    <string name="edit">Edit</string>
+    <string name="delete_all">Delete All</string>
 </resources>

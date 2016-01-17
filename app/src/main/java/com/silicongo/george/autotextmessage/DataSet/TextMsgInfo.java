@@ -1,11 +1,8 @@
-package com.silicongo.george.autotextmessage;
+package com.silicongo.george.autotextmessage.DataSet;
 
 import android.database.Cursor;
-import android.util.Log;
 
 import java.io.BufferedReader;
-import java.util.Calendar;
-import java.util.HashMap;
 
 /**
  * Created by suxch on 2016/1/2.
