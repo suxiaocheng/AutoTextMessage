@@ -124,6 +124,7 @@ public class MainActivity extends AppCompatActivity implements AutoTestMsgAdapte
                             mAdapter.add(mAdapter.getItemCount(), textMsgInfoParcelable.mData);
                             adapter.saveTextMsgInfo(textMsgInfoParcelable.mData);
                         }
+                        adapter.fetchAllTextMessages();
                     }
                 }
                 break;
@@ -134,9 +135,11 @@ public class MainActivity extends AppCompatActivity implements AutoTestMsgAdapte
                         adapter.deleteTextMsgInfo(textMsgInfo.get(TextMsgInfo.ROW_ID).getInt());
                         TextMsgInfoParcelable textMsgInfoParcelable = data.getParcelableExtra(SettingItemActivity.SETTING_RESULT);
                         if(textMsgInfoParcelable != null){
+                            textMsgInfoParcelable.mData.get(TextMsgInfo.ROW_ID).set(0x0);
                             mAdapter.add(mAdapter.getItemCount(), textMsgInfoParcelable.mData);
                             adapter.saveTextMsgInfo(textMsgInfoParcelable.mData);
                         }
+                        adapter.fetchAllTextMessages();
                     }
                 }
                 break;

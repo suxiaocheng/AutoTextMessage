@@ -1,6 +1,7 @@
 package com.silicongo.george.autotextmessage.DataSet;
 
 import android.database.Cursor;
+import android.util.Log;
 
 import java.io.BufferedReader;
 
@@ -88,5 +89,12 @@ public class TextMsgInfo extends SimplePropertyCollection {
             return "message has not been set";
         }
         return null;
+    }
+
+    public static void dumpTextMsgInfo(TextMsgInfo info, String tag){
+        Log.d(tag, ROW_ID + ": " + info.get(ROW_ID).getInt() + ", " +
+                ROW_PHONE_NUMBER + ": " + info.get(ROW_PHONE_NUMBER).getString() + ", " +
+                ROW_AVAIL_TEXT_MESSAGE + "0" + ": " + info.get(ROW_AVAIL_TEXT_MESSAGE + "0").getString() + ", " +
+                ROW_TEXT_TAG + ": " + info.get(ROW_TEXT_TAG).getString());
     }
 }
