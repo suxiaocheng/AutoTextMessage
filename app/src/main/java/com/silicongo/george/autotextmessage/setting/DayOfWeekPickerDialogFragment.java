@@ -8,6 +8,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 
+import com.silicongo.george.autotextmessage.DataSet.TextMsgInfo;
 import com.silicongo.george.autotextmessage.R;
 
 /**
@@ -16,25 +17,18 @@ import com.silicongo.george.autotextmessage.R;
 public class DayOfWeekPickerDialogFragment extends DialogFragment {
     private static final String TAG = "DayOfWeekPickerDialogFragment";
 
-    public static final String SUNDAY = "DayOfWeekPickerDialogFragment.SUNDAY";
-    public static final String MONDAY = "DayOfWeekPickerDialogFragment.MONDAY";
-    public static final String TUESDAY = "DayOfWeekPickerDialogFragment.TUESDAY";
-    public static final String WEDNESDAY = "DayOfWeekPickerDialogFragment.WEDNESDAY";
-    public static final String THURSDAY = "DayOfWeekPickerDialogFragment.THURSDAY";
-    public static final String FRIDAY = "DayOfWeekPickerDialogFragment.FRIDAY";
-    public static final String SATURDAY = "DayOfWeekPickerDialogFragment.SATURDAY";
-
-    private boolean[] initStatus = new boolean[7];
-    private String[] stringsDayOfWeek = {SUNDAY, MONDAY, TUESDAY, WEDNESDAY, THURSDAY, FRIDAY, SATURDAY};
     private DayOfWeekPickerDialogFragment mInstance;
+    private boolean initStatus[] = new boolean[7];
 
     /* The activity that creates an instance of this dialog fragment must
          * implement this interface in order to receive event callbacks.
          * Each method passes the DialogFragment in case the host needs to query it. */
     public interface NoticeDialogListener {
         public void onDialogPositiveClick(DialogFragment dialog, Intent intent);
+
         public void onDialogNegativeClick(DialogFragment dialog, Intent intent);
     }
+
     // Use this instance of the interface to deliver action events
     NoticeDialogListener mListener;
 
@@ -57,13 +51,17 @@ public class DayOfWeekPickerDialogFragment extends DialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
 
         int count = 0;
-        if(getArguments() != null){
-            for(String str:stringsDayOfWeek){
-                initStatus[count] = getArguments().getBoolean(str);
-                count++;
+        if (getArguments() != null) {
+            int dayOfWeek = getArguments().getInt(TextMsgInfo.ROW_WEEK);
+            for (count = 0; count < 7; count++) {
+                if ((dayOfWeek & (0x1 << count)) != 0x0) {
+                    initStatus[count] = true;
+                } else {
+                    initStatus[count] = false;
+                }
             }
-        }else{
-            for(count=0; count<initStatus.length; count++){
+        } else {
+            for (count = 0; count < initStatus.length; count++) {
                 initStatus[count] = false;
             }
         }
@@ -91,11 +89,14 @@ public class DayOfWeekPickerDialogFragment extends DialogFragment {
                         // or return them to the component that opened the dialog
                         Intent intent = new Intent();
 
-                        int count = 0;
-                        for(String str:stringsDayOfWeek){
-                            intent.putExtra(str, initStatus[count]);
-                            count++;
+                        int count;
+                        int dayOfWeek = 0x0;;
+                        for (count = 0; count < 7; count++) {
+                            if(initStatus[count] == true){
+                                dayOfWeek |= (0x1<<count);
+                            }
                         }
+                        intent.putExtra(TextMsgInfo.ROW_WEEK, dayOfWeek);
                         mListener.onDialogPositiveClick(mInstance, intent);
                     }
                 })

@@ -1,19 +1,28 @@
 package com.silicongo.george.autotextmessage;
 
 import android.app.Activity;
+import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.telephony.SmsManager;
+import android.util.Log;
 import android.widget.Toast;
+
+import com.silicongo.george.autotextmessage.DataSet.TextMsgInfo;
+import com.silicongo.george.autotextmessage.Database.TextDbAdapter;
+
+import java.util.ArrayList;
 
 /**
  * Created by suxch on 2016/1/2.
@@ -24,8 +33,15 @@ public class AutoTextMsgService extends Service {
     public static final String SERVICE_SEND_TEXT_MESSAGE = "com.silicongo.george.SEND_TEXT_MESSAGE";
     public static final String SERVICE_QUERY_TEXT_MESSAGE = "com.silicongo.george.QUERY_TEXT_MESSAGE";
 
+    public static final String NEXT_AVAIL_TEXT_MSG_ID = "nextAvailTextMsgId";
+
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
+
+    private TextDbAdapter adapter;
+    private ArrayList<TextMsgInfo> mTextMsgInfoList = new ArrayList<>();
+
+    private AutoTextMsgService msgService = this;
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -35,17 +51,19 @@ public class AutoTextMsgService extends Service {
 
         @Override
         public void handleMessage(Message msg) {
+            TextMsgInfo info = (TextMsgInfo)msg.obj;
             // Normally we would do some work here, like download a file.
-            // For our sample, we just sleep for 5 seconds.
-            long endTime = System.currentTimeMillis() + 5 * 1000;
-            while (System.currentTimeMillis() < endTime) {
-                synchronized (this) {
-                    try {
-                        wait(endTime - System.currentTimeMillis());
-                    } catch (Exception e) {
-                    }
-                }
+            Toast.makeText(msgService, "Send Message: " +
+                    info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString(), Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "Sending Message: "+
+                    info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString());
+
+            try {
+                wait(3000);
+            }catch (Exception e){
+
             }
+
             // Stop the service using the startId, so that we don't stop
             // the service in the middle of handling another job
             stopSelf(msg.arg1);
@@ -54,6 +72,10 @@ public class AutoTextMsgService extends Service {
 
     @Override
     public void onCreate() {
+
+        adapter = new TextDbAdapter(this);
+        adapter.open();
+
         // Start up the thread running the service.  Note that we create a
         // separate thread because the service normally runs in the process's
         // main thread, which we don't want to block.  We also make it
@@ -70,11 +92,45 @@ public class AutoTextMsgService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Toast.makeText(this, "service starting", Toast.LENGTH_SHORT).show();
 
-        // For each start request, send a message to start a job and deliver the
-        // start ID so we know which request we're stopping when we finish the job
-        Message msg = mServiceHandler.obtainMessage();
-        msg.arg1 = startId;
-        mServiceHandler.sendMessage(msg);
+        SharedPreferences settings = getSharedPreferences(MainActivity.PREFS_NAME, 0);
+
+        updateDataSet();
+
+        if((intent != null) && (intent.getAction() == SERVICE_SEND_TEXT_MESSAGE)){
+            // For each start request, send a message to start a job and deliver the
+            // start ID so we know which request we're stopping when we finish the job
+            Message msg = mServiceHandler.obtainMessage();
+            msg.arg1 = settings.getInt(NEXT_AVAIL_TEXT_MSG_ID, 0x0);
+            if(msg.arg1 != 0x0) {
+                msg.obj = getByID(msg.arg1);
+                if(msg.obj != null) {
+                    mServiceHandler.sendMessage(msg);
+                }
+                SharedPreferences.Editor editor = settings.edit();
+                editor.putInt(NEXT_AVAIL_TEXT_MSG_ID, 0x0);
+                editor.commit();
+            }
+        }else{
+            TextMsgInfo info = getNextMsgSendPos();
+            if(info != null){
+                Intent broadcastIntent = new Intent(SERVICE_SEND_TEXT_MESSAGE);
+                PendingIntent pi = PendingIntent.getBroadcast(this, 0, broadcastIntent, 0);
+                long offset = System.currentTimeMillis();
+                long relative_offset = TextMsgInfo.getOffsetOfCurrentTime(info);
+
+                SharedPreferences.Editor editor = settings.edit();
+                editor.putInt(NEXT_AVAIL_TEXT_MSG_ID, info.get(TextMsgInfo.ROW_ID).getInt());
+                editor.commit();
+
+                offset += relative_offset*60*1000;
+
+                AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE);
+                am.set(AlarmManager.RTC_WAKEUP, offset, pi);
+
+                Log.d(TAG, "Alarm time is set to: " + (relative_offset / 60)
+                    +":" + (relative_offset % 60));
+            }
+        }
 
         // If we get killed, after returning from here, restart
         return START_STICKY;
@@ -88,7 +144,9 @@ public class AutoTextMsgService extends Service {
 
     @Override
     public void onDestroy() {
-        Toast.makeText(this, "service done", Toast.LENGTH_SHORT).show();
+        adapter.close();
+        Toast.makeText(this, "Service Done", Toast.LENGTH_SHORT).show();
+        Log.d(TAG, "Service Done");
     }
 
     private void sendSMS(String phoneNumber, String message) {
@@ -143,5 +201,71 @@ public class AutoTextMsgService extends Service {
 
         SmsManager sms = SmsManager.getDefault();
         sms.sendTextMessage(phoneNumber, null, message, sentPI, deliveredPI);
+    }
+
+    public void updateDataSet(){
+        mTextMsgInfoList.clear();
+        Cursor cursor = adapter.fetchAllTextMessages();
+        if(cursor.moveToFirst()){
+            mTextMsgInfoList.add(new TextMsgInfo(cursor));
+            while(cursor.moveToNext()){
+                mTextMsgInfoList.add(new TextMsgInfo(cursor));
+            }
+        }
+        cursor.close();
+    }
+
+    public TextMsgInfo getByID(int id){
+        TextMsgInfo info = null;
+        int i;
+
+        for(i=0; i<mTextMsgInfoList.size(); i++){
+            info = mTextMsgInfoList.get(i);
+            if(info.get(TextMsgInfo.ROW_ID).getInt() == id){
+                break;
+            }
+        }
+
+        if(i == mTextMsgInfoList.size()){
+            info = null;
+        }
+
+        return info;
+    }
+
+    public TextMsgInfo getNextMsgSendPos(){
+        TextMsgInfo availTextMsgInfo = null;
+        long current_offset = 0, last_offset = 0;
+        long match_item_count = 0;
+
+        if(mTextMsgInfoList.size() > 0){
+            TextMsgInfo compareTextMsgInfo;
+            for(int i=0; i<mTextMsgInfoList.size(); i++){
+                compareTextMsgInfo = mTextMsgInfoList.get(i);
+                current_offset = TextMsgInfo.getOffsetOfCurrentTime(compareTextMsgInfo);
+                if(last_offset == 0){
+                    last_offset = current_offset;
+                    availTextMsgInfo = compareTextMsgInfo;
+                    match_item_count = 0x0;
+                }else{
+                    if(last_offset > current_offset){
+                        last_offset = current_offset;
+                        availTextMsgInfo = compareTextMsgInfo;
+                        match_item_count = 0x0;
+                    }else if(last_offset == current_offset){
+                        match_item_count++;
+                    }
+                }
+                Log.d(TAG, "Item: " + i + ", Offset: " + current_offset);
+            }
+        }
+
+        if(availTextMsgInfo != null){
+            Log.d(TAG, "Find Valid Message at: " + availTextMsgInfo.get(TextMsgInfo.ROW_TIME_HOUR).getInt()
+                    + ":" + availTextMsgInfo.get(TextMsgInfo.ROW_TIME_MINUTE).getInt()
+                    + ", Data: " + availTextMsgInfo.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString());
+        }
+
+        return availTextMsgInfo;
     }
 }

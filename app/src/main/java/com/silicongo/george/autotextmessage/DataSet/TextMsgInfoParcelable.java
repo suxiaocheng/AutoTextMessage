@@ -20,16 +20,7 @@ public class TextMsgInfoParcelable implements Parcelable {
         out.writeInt(mData.get(TextMsgInfo.ROW_ID).getInt());
         out.writeString(mData.get(TextMsgInfo.ROW_PHONE_NUMBER).getString());
 
-        boolean[] enableDayOfWeek = {
-                mData.get(TextMsgInfo.ROW_WEEK_SUNDAY).getBool(),
-                mData.get(TextMsgInfo.ROW_WEEK_MONDAY).getBool(),
-                mData.get(TextMsgInfo.ROW_WEEK_TUESDAY).getBool(),
-                mData.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).getBool(),
-                mData.get(TextMsgInfo.ROW_WEEK_THURSDAY).getBool(),
-                mData.get(TextMsgInfo.ROW_WEEK_FRIDAY).getBool(),
-                mData.get(TextMsgInfo.ROW_WEEK_SATURDAY).getBool()
-        };
-        out.writeBooleanArray(enableDayOfWeek);
+        out.writeInt(mData.get(TextMsgInfo.ROW_WEEK).getInt());
         out.writeInt(mData.get(TextMsgInfo.ROW_TIME_HOUR).getInt());
         out.writeInt(mData.get(TextMsgInfo.ROW_TIME_MINUTE).getInt());
 
@@ -58,19 +49,12 @@ public class TextMsgInfoParcelable implements Parcelable {
 
     // 读数据进行恢复
     private TextMsgInfoParcelable(Parcel in) {
+        boolean tmp[];
         mData = new TextMsgInfo();
         mData.get(TextMsgInfo.ROW_ID).set(in.readInt());
         mData.get(TextMsgInfo.ROW_PHONE_NUMBER).set(in.readString());
 
-        boolean[] tmp = new boolean[7];
-        in.readBooleanArray(tmp);
-        mData.get(TextMsgInfo.ROW_WEEK_SUNDAY).set(tmp[0]);
-        mData.get(TextMsgInfo.ROW_WEEK_MONDAY).set(tmp[1]);
-        mData.get(TextMsgInfo.ROW_WEEK_TUESDAY).set(tmp[2]);
-        mData.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).set(tmp[3]);
-        mData.get(TextMsgInfo.ROW_WEEK_THURSDAY).set(tmp[4]);
-        mData.get(TextMsgInfo.ROW_WEEK_FRIDAY).set(tmp[5]);
-        mData.get(TextMsgInfo.ROW_WEEK_SATURDAY).set(tmp[6]);
+        mData.get(TextMsgInfo.ROW_WEEK).set(in.readInt());
 
         mData.get(TextMsgInfo.ROW_TIME_HOUR).set(in.readInt());
         mData.get(TextMsgInfo.ROW_TIME_MINUTE).set(in.readInt());

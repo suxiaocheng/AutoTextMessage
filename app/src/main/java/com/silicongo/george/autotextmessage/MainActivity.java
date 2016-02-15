@@ -8,7 +8,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.ContextMenu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -17,8 +16,7 @@ import android.widget.Button;
 import com.silicongo.george.autotextmessage.DataSet.TextMsgInfo;
 import com.silicongo.george.autotextmessage.DataSet.TextMsgInfoParcelable;
 import com.silicongo.george.autotextmessage.Database.TextDbAdapter;
-
-import org.w3c.dom.Text;
+import com.silicongo.george.autotextmessage.setting.SettingItemActivity;
 
 import java.util.ArrayList;
 
@@ -28,6 +26,7 @@ import butterknife.OnClick;
 
 public class MainActivity extends AppCompatActivity implements AutoTestMsgAdapter.AutoTextClickListener {
     public static final String TAG = "MainActivity";
+    public static final String PREFS_NAME = "MyPrefsFile";
 
     public static final int INTENT_RESULT_ADD_ITEM = 0x0;
     public static final int INTENT_RESULT_EDIT_ITEM = 0x1;
@@ -80,6 +79,8 @@ public class MainActivity extends AppCompatActivity implements AutoTestMsgAdapte
         // specify an adapter (see also next example)
         mAdapter = new AutoTestMsgAdapter(mTextMsgInfoList, this);
         rvListOfAutoMessage.setAdapter(mAdapter);
+
+        startAutoTextMsgService();
     }
 
     @Override
@@ -125,6 +126,8 @@ public class MainActivity extends AppCompatActivity implements AutoTestMsgAdapte
                             adapter.saveTextMsgInfo(textMsgInfoParcelable.mData);
                         }
                         adapter.fetchAllTextMessages();
+
+                        startAutoTextMsgService();
                     }
                 }
                 break;
@@ -140,6 +143,8 @@ public class MainActivity extends AppCompatActivity implements AutoTestMsgAdapte
                             adapter.saveTextMsgInfo(textMsgInfoParcelable.mData);
                         }
                         adapter.fetchAllTextMessages();
+
+                        startAutoTextMsgService();
                     }
                 }
                 break;
@@ -186,10 +191,18 @@ public class MainActivity extends AppCompatActivity implements AutoTestMsgAdapte
                 if((mAdapter.position >= 0) && (mAdapter.position < mAdapter.getItemCount())){
                     TextMsgInfo textMsgInfo = mAdapter.remove(mAdapter.position);
                     adapter.deleteTextMsgInfo(textMsgInfo.get(TextMsgInfo.ROW_ID).getInt());
+
+                    startAutoTextMsgService();
                 }
                 return true;
             default:
                 return super.onContextItemSelected(item);
         }
+    }
+
+    public void startAutoTextMsgService(){
+        Intent intent = new Intent(this, AutoTextMsgService.class);
+        intent.setAction(AutoTextMsgService.SERVICE_QUERY_TEXT_MESSAGE);
+        startService(intent);
     }
 }

@@ -1,4 +1,4 @@
-package com.silicongo.george.autotextmessage;
+package com.silicongo.george.autotextmessage.setting;
 
 import android.app.DialogFragment;
 import android.content.Context;
@@ -21,6 +21,7 @@ import android.widget.Toast;
 
 import com.silicongo.george.autotextmessage.DataSet.TextMsgInfoParcelable;
 import com.silicongo.george.autotextmessage.Database.TextDbAdapter;
+import com.silicongo.george.autotextmessage.R;
 import com.silicongo.george.autotextmessage.setting.DayOfWeekPickerDialogFragment;
 import com.silicongo.george.autotextmessage.setting.SettingMessageContent;
 import com.silicongo.george.autotextmessage.setting.SettingPhoneNumberDialogFragment;
@@ -149,17 +150,7 @@ public class SettingItemActivity extends AppCompatActivity implements ListView.O
                     strRet = String.format("%d:%d", hour, minute);
                     break;
                 case 2:
-                    strRet = textMsgInfo.get(TextMsgInfo.ROW_WEEK_SUNDAY).getBool() ? "Sunday " : "";
-                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_MONDAY).getBool() ? "Monday " : "";
-                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_TUESDAY).getBool() ? "Tuesday " : "";
-                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).getBool() ? "Wednesday " : "";
-                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_THURSDAY).getBool() ? "Thursday " : "";
-                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_FRIDAY).getBool() ? "Friday " : "";
-                    strRet += textMsgInfo.get(TextMsgInfo.ROW_WEEK_SATURDAY).getBool() ? "Saturday " : "";
-
-                    if (strRet.compareTo("") == 0) {
-                        strRet = getResources().getString(R.string.week_data_empty).toString();
-                    }
+                    strRet =  TextMsgInfo.getWeekEnableString(textMsgInfo);
                     break;
                 case 3:
                     strRet = textMsgInfo.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString();
@@ -200,13 +191,7 @@ public class SettingItemActivity extends AppCompatActivity implements ListView.O
                 break;
             case 2:
                 newFragment = new DayOfWeekPickerDialogFragment();
-                bundle.putBoolean(DayOfWeekPickerDialogFragment.SUNDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_SUNDAY).getBool());
-                bundle.putBoolean(DayOfWeekPickerDialogFragment.MONDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_MONDAY).getBool());
-                bundle.putBoolean(DayOfWeekPickerDialogFragment.TUESDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_TUESDAY).getBool());
-                bundle.putBoolean(DayOfWeekPickerDialogFragment.WEDNESDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).getBool());
-                bundle.putBoolean(DayOfWeekPickerDialogFragment.THURSDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_THURSDAY).getBool());
-                bundle.putBoolean(DayOfWeekPickerDialogFragment.FRIDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_FRIDAY).getBool());
-                bundle.putBoolean(DayOfWeekPickerDialogFragment.SATURDAY, textMsgInfo.get(TextMsgInfo.ROW_WEEK_SATURDAY).getBool());
+                bundle.putInt(TextMsgInfo.ROW_WEEK, textMsgInfo.get(TextMsgInfo.ROW_WEEK).getInt());
                 newFragment.setArguments(bundle);
                 newFragment.show(getFragmentManager(), "dayOfWeekPicker");
                 break;
@@ -308,13 +293,7 @@ public class SettingItemActivity extends AppCompatActivity implements ListView.O
             }
         } else if (dialog instanceof DayOfWeekPickerDialogFragment) {
             if (intent != null) {
-                textMsgInfo.get(TextMsgInfo.ROW_WEEK_SUNDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.SUNDAY, false));
-                textMsgInfo.get(TextMsgInfo.ROW_WEEK_MONDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.MONDAY, false));
-                textMsgInfo.get(TextMsgInfo.ROW_WEEK_TUESDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.TUESDAY, false));
-                textMsgInfo.get(TextMsgInfo.ROW_WEEK_WEDNESDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.WEDNESDAY, false));
-                textMsgInfo.get(TextMsgInfo.ROW_WEEK_THURSDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.THURSDAY, false));
-                textMsgInfo.get(TextMsgInfo.ROW_WEEK_FRIDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.FRIDAY, false));
-                textMsgInfo.get(TextMsgInfo.ROW_WEEK_SATURDAY).set(intent.getBooleanExtra(DayOfWeekPickerDialogFragment.SATURDAY, false));
+                textMsgInfo.get(TextMsgInfo.ROW_WEEK).set(intent.getIntExtra(TextMsgInfo.ROW_WEEK, 0x0));
             }
         } else if(dialog instanceof SettingTag){
             if(intent!=null){

@@ -22,9 +22,15 @@
         <service android:name=".AutoTextMsgService" />
 
         <activity
-            android:name=".SettingItemActivity"
+            android:name=".setting.SettingItemActivity"
             android:label="@string/title_activity_setting_item"
             android:theme="@style/AppTheme.NoActionBar"></activity>
+
+        <receiver android:name=".SendingMsgReciver">
+            <intent-filter>
+                <action android:name="com.silicongo.george.SEND_TEXT_MESSAGE" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
