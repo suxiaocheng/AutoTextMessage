@@ -7,6 +7,8 @@ import android.os.PowerManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.silicongo.george.autotextmessage.Debug.FileLog;
+
 /**
  * Created by suxch on 2016/2/14.
  */
@@ -16,7 +18,7 @@ public class SendingMsgReciver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent)
     {
-        Log.d(TAG, "Sending Msg Receiver");
+        FileLog.d(TAG, "Wakeup Event, Sending Message Receiver");
 
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AppAlarmReceiver");

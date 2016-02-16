@@ -16,11 +16,11 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.telephony.SmsManager;
-import android.util.Log;
 import android.widget.Toast;
 
 import com.silicongo.george.autotextmessage.DataSet.TextMsgInfo;
 import com.silicongo.george.autotextmessage.Database.TextDbAdapter;
+import com.silicongo.george.autotextmessage.Debug.FileLog;
 
 import java.util.ArrayList;
 
@@ -34,6 +34,7 @@ public class AutoTextMsgService extends Service {
     public static final String SERVICE_QUERY_TEXT_MESSAGE = "com.silicongo.george.QUERY_TEXT_MESSAGE";
 
     public static final String NEXT_AVAIL_TEXT_MSG_ID = "nextAvailTextMsgId";
+    public static final String SENDING_MSG_COUNT = "sendingMessageCount";
 
     private Looper mServiceLooper;
     private ServiceHandler mServiceHandler;
@@ -43,6 +44,8 @@ public class AutoTextMsgService extends Service {
 
     private AutoTextMsgService msgService = this;
 
+    private int sendMsgCount;
+
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
         public ServiceHandler(Looper looper) {
@@ -51,22 +54,32 @@ public class AutoTextMsgService extends Service {
 
         @Override
         public void handleMessage(Message msg) {
-            TextMsgInfo info = (TextMsgInfo)msg.obj;
-            // Normally we would do some work here, like download a file.
-            Toast.makeText(msgService, "Send Message: " +
-                    info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString(), Toast.LENGTH_SHORT).show();
-            Log.d(TAG, "Sending Message: "+
-                    info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString());
+            TextMsgInfo info = (TextMsgInfo) msg.obj;
+            if (info != null) {
+                // Normally we would do some work here, like download a file.
+                Toast.makeText(msgService, "Send Message: " +
+                        info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString(), Toast.LENGTH_SHORT).show();
+                FileLog.d(TAG, "Sending Message: " +
+                        info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString());
 
-            try {
-                wait(3000);
-            }catch (Exception e){
+                SharedPreferences settings = getSharedPreferences(MainActivity.PREFS_NAME, 0);
+                sendMsgCount = settings.getInt(SENDING_MSG_COUNT, 0x0);
+                sendMsgCount++;
+                SharedPreferences.Editor editor = settings.edit();
+                editor.putInt(SENDING_MSG_COUNT, sendMsgCount);
+                editor.commit();
 
+                FileLog.d(TAG, "Sending Message Count: " + sendMsgCount);
+
+                try {
+                    wait(3000);
+                } catch (Exception e) {
+
+                }
             }
-
             // Stop the service using the startId, so that we don't stop
             // the service in the middle of handling another job
-            stopSelf(msg.arg1);
+            stopSelf(msg.arg2);
         }
     }
 
@@ -96,41 +109,42 @@ public class AutoTextMsgService extends Service {
 
         updateDataSet();
 
-        if((intent != null) && (intent.getAction() == SERVICE_SEND_TEXT_MESSAGE)){
+        Message msg = mServiceHandler.obtainMessage();
+        msg.arg1 = 0x0;
+        msg.arg2 = startId;
+        msg.obj = null;
+
+        if ((intent != null) && (intent.getAction() == SERVICE_SEND_TEXT_MESSAGE)) {
             // For each start request, send a message to start a job and deliver the
             // start ID so we know which request we're stopping when we finish the job
-            Message msg = mServiceHandler.obtainMessage();
             msg.arg1 = settings.getInt(NEXT_AVAIL_TEXT_MSG_ID, 0x0);
-            if(msg.arg1 != 0x0) {
+            if (msg.arg1 != 0x0) {
                 msg.obj = getByID(msg.arg1);
-                if(msg.obj != null) {
-                    mServiceHandler.sendMessage(msg);
-                }
                 SharedPreferences.Editor editor = settings.edit();
                 editor.putInt(NEXT_AVAIL_TEXT_MSG_ID, 0x0);
                 editor.commit();
             }
-        }else{
-            TextMsgInfo info = getNextMsgSendPos();
-            if(info != null){
-                Intent broadcastIntent = new Intent(SERVICE_SEND_TEXT_MESSAGE);
-                PendingIntent pi = PendingIntent.getBroadcast(this, 0, broadcastIntent, 0);
-                long offset = System.currentTimeMillis();
-                long relative_offset = TextMsgInfo.getOffsetOfCurrentTime(info);
-
-                SharedPreferences.Editor editor = settings.edit();
-                editor.putInt(NEXT_AVAIL_TEXT_MSG_ID, info.get(TextMsgInfo.ROW_ID).getInt());
-                editor.commit();
-
-                offset += relative_offset*60*1000;
-
-                AlarmManager am = (AlarmManager)getSystemService(ALARM_SERVICE);
-                am.set(AlarmManager.RTC_WAKEUP, offset, pi);
-
-                Log.d(TAG, "Alarm time is set to: " + (relative_offset / 60)
-                    +":" + (relative_offset % 60));
-            }
         }
+        TextMsgInfo info = getNextMsgSendPos();
+        if (info != null) {
+            Intent broadcastIntent = new Intent(SERVICE_SEND_TEXT_MESSAGE);
+            PendingIntent pi = PendingIntent.getBroadcast(this, 0, broadcastIntent, 0);
+            long offset = System.currentTimeMillis();
+            long relative_offset = TextMsgInfo.getOffsetOfCurrentTime(info);
+
+            SharedPreferences.Editor editor = settings.edit();
+            editor.putInt(NEXT_AVAIL_TEXT_MSG_ID, info.get(TextMsgInfo.ROW_ID).getInt());
+            editor.commit();
+
+            offset += relative_offset * 60 * 1000;
+
+            AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+            am.set(AlarmManager.RTC_WAKEUP, offset, pi);
+
+            FileLog.d(TAG, "Alarm time is set to: " + (relative_offset / 60)
+                    + ":" + (relative_offset % 60));
+        }
+        mServiceHandler.sendMessage(msg);
 
         // If we get killed, after returning from here, restart
         return START_STICKY;
@@ -146,7 +160,7 @@ public class AutoTextMsgService extends Service {
     public void onDestroy() {
         adapter.close();
         Toast.makeText(this, "Service Done", Toast.LENGTH_SHORT).show();
-        Log.d(TAG, "Service Done");
+        FileLog.d(TAG, "Service Done");
     }
 
     private void sendSMS(String phoneNumber, String message) {
@@ -203,65 +217,65 @@ public class AutoTextMsgService extends Service {
         sms.sendTextMessage(phoneNumber, null, message, sentPI, deliveredPI);
     }
 
-    public void updateDataSet(){
+    public void updateDataSet() {
         mTextMsgInfoList.clear();
         Cursor cursor = adapter.fetchAllTextMessages();
-        if(cursor.moveToFirst()){
+        if (cursor.moveToFirst()) {
             mTextMsgInfoList.add(new TextMsgInfo(cursor));
-            while(cursor.moveToNext()){
+            while (cursor.moveToNext()) {
                 mTextMsgInfoList.add(new TextMsgInfo(cursor));
             }
         }
         cursor.close();
     }
 
-    public TextMsgInfo getByID(int id){
+    public TextMsgInfo getByID(int id) {
         TextMsgInfo info = null;
         int i;
 
-        for(i=0; i<mTextMsgInfoList.size(); i++){
+        for (i = 0; i < mTextMsgInfoList.size(); i++) {
             info = mTextMsgInfoList.get(i);
-            if(info.get(TextMsgInfo.ROW_ID).getInt() == id){
+            if (info.get(TextMsgInfo.ROW_ID).getInt() == id) {
                 break;
             }
         }
 
-        if(i == mTextMsgInfoList.size()){
+        if (i == mTextMsgInfoList.size()) {
             info = null;
         }
 
         return info;
     }
 
-    public TextMsgInfo getNextMsgSendPos(){
+    public TextMsgInfo getNextMsgSendPos() {
         TextMsgInfo availTextMsgInfo = null;
         long current_offset = 0, last_offset = 0;
         long match_item_count = 0;
 
-        if(mTextMsgInfoList.size() > 0){
+        if (mTextMsgInfoList.size() > 0) {
             TextMsgInfo compareTextMsgInfo;
-            for(int i=0; i<mTextMsgInfoList.size(); i++){
+            for (int i = 0; i < mTextMsgInfoList.size(); i++) {
                 compareTextMsgInfo = mTextMsgInfoList.get(i);
                 current_offset = TextMsgInfo.getOffsetOfCurrentTime(compareTextMsgInfo);
-                if(last_offset == 0){
+                if (last_offset == 0) {
                     last_offset = current_offset;
                     availTextMsgInfo = compareTextMsgInfo;
                     match_item_count = 0x0;
-                }else{
-                    if(last_offset > current_offset){
+                } else {
+                    if (last_offset > current_offset) {
                         last_offset = current_offset;
                         availTextMsgInfo = compareTextMsgInfo;
                         match_item_count = 0x0;
-                    }else if(last_offset == current_offset){
+                    } else if (last_offset == current_offset) {
                         match_item_count++;
                     }
                 }
-                Log.d(TAG, "Item: " + i + ", Offset: " + current_offset);
+                FileLog.d(TAG, "Item: " + i + ", Offset: " + current_offset);
             }
         }
 
-        if(availTextMsgInfo != null){
-            Log.d(TAG, "Find Valid Message at: " + availTextMsgInfo.get(TextMsgInfo.ROW_TIME_HOUR).getInt()
+        if (availTextMsgInfo != null) {
+            FileLog.d(TAG, "Find Valid Message at: " + availTextMsgInfo.get(TextMsgInfo.ROW_TIME_HOUR).getInt()
                     + ":" + availTextMsgInfo.get(TextMsgInfo.ROW_TIME_MINUTE).getInt()
                     + ", Data: " + availTextMsgInfo.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString());
         }
