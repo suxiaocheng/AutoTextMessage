@@ -21,7 +21,7 @@ public class TextMsgInfo extends SimplePropertyCollection {
         get(ROW_TIME_HOUR).set(c.get(Calendar.HOUR_OF_DAY));
         get(ROW_TIME_MINUTE).set(c.get(Calendar.MINUTE));
 
-        get(ROW_WEEK).set(1<<(c.get(Calendar.DAY_OF_WEEK)-1));
+        get(ROW_WEEK).set(1 << (c.get(Calendar.DAY_OF_WEEK) - 1));
     }
 
     public TextMsgInfo(BufferedReader reader, boolean skipId) throws Exception {
@@ -90,45 +90,47 @@ public class TextMsgInfo extends SimplePropertyCollection {
     }
 
     public static long getOffsetOfCurrentTime(TextMsgInfo info) {
-        final long minuteInOneWeek = 7*24*60;
+        final long secondInOneWeek = 7 * 24 * 60 * 60;
         Calendar c = Calendar.getInstance();
         long offset = -1;
         if (info.get(TextMsgInfo.ROW_ENABLE).getBool() == false) {
-            return -1;
+            return Long.MAX_VALUE;
         }
-        long current_offset = ((c.get(Calendar.DAY_OF_WEEK) - 1) * 24 +
-                c.get(Calendar.HOUR_OF_DAY)) * 60 + c.get(Calendar.MINUTE);
+        long current_offset = (((c.get(Calendar.DAY_OF_WEEK) - 1) * 24 +
+                c.get(Calendar.HOUR_OF_DAY)) * 60 + c.get(Calendar.MINUTE)) * 60 +
+                c.get(Calendar.SECOND);
         int hour = info.get(TextMsgInfo.ROW_TIME_HOUR).getInt();
         int minute = info.get(TextMsgInfo.ROW_TIME_MINUTE).getInt();
         int dayOfWeek = info.get(TextMsgInfo.ROW_WEEK).getInt();
         if ((dayOfWeek & (0x1 << 7)) != 0x0) {
             /* One Time Event */
-            int currentTimeOffset = c.get(Calendar.HOUR_OF_DAY) * 60 + c.get(Calendar.MINUTE);
-            int targetTimeOffset = hour*60 + minute;
-            dayOfWeek = (0x1<<c.get(Calendar.DAY_OF_WEEK));
-            if(currentTimeOffset < targetTimeOffset){
+            int currentTimeOffset = (c.get(Calendar.HOUR_OF_DAY) * 60 + c.get(Calendar.MINUTE)) * 60
+                    + c.get(Calendar.SECOND);
+            int targetTimeOffset = (hour * 60 + minute) * 60;
+            dayOfWeek = (0x1 << c.get(Calendar.DAY_OF_WEEK));
+            if (currentTimeOffset < targetTimeOffset) {
                 dayOfWeek >>= 1;
             }
-        }else if((dayOfWeek & (0x1<<8)) != 0x0){
-            dayOfWeek = (0x1f<<1);
-        }else if((dayOfWeek & (0x1<<9)) != 0x0){
-            dayOfWeek = (0x1) | (0x1<<7);
-        }else if((dayOfWeek & (0x1<<10)) != 0x0){
+        } else if ((dayOfWeek & (0x1 << 8)) != 0x0) {
+            dayOfWeek = (0x1f << 1);
+        } else if ((dayOfWeek & (0x1 << 9)) != 0x0) {
+            dayOfWeek = (0x1) | (0x1 << 7);
+        } else if ((dayOfWeek & (0x1 << 10)) != 0x0) {
             dayOfWeek = 0x7f;
         }
         long target_offset[] = new long[7];
         for (int i = 0; i < 7; i++) {
             if ((dayOfWeek & (0x1 << i)) != 0x0) {
-                target_offset[i] = (i * 24 + hour) * 60 + minute;
+                target_offset[i] = ((i * 24 + hour) * 60 + minute) * 60;
             } else {
-                target_offset[i] = -1;
+                target_offset[i] = Long.MAX_VALUE;
             }
         }
         int pos = -1;
         int firstValid = -1;
-        for(int i=0; i<7; i++){
-            if(target_offset[i] != -1) {
-                if(firstValid == -1) {
+        for (int i = 0; i < 7; i++) {
+            if (target_offset[i] != Long.MAX_VALUE) {
+                if (firstValid == -1) {
                     firstValid = i;
                 }
                 if (target_offset[i] - current_offset > 0) {
@@ -137,10 +139,10 @@ public class TextMsgInfo extends SimplePropertyCollection {
                 }
             }
         }
-        if(pos != -1){
+        if (pos != -1) {
             offset = target_offset[pos] - current_offset;
-        }else{
-            offset = (target_offset[firstValid]) + minuteInOneWeek - current_offset;
+        } else {
+            offset = (target_offset[firstValid]) + secondInOneWeek - current_offset;
         }
         return offset;
     }
@@ -153,7 +155,7 @@ public class TextMsgInfo extends SimplePropertyCollection {
         srcOffset = getOffsetOfCurrentTime(src);
         desOffset = getOffsetOfCurrentTime(des);
 
-        if(srcOffset < desOffset){
+        if (srcOffset < desOffset) {
             boolRet = true;
         }
 

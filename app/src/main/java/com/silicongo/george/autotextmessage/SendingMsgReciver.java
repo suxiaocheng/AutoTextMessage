@@ -25,6 +25,7 @@ public class SendingMsgReciver extends BroadcastReceiver {
         wl.acquire(120000);
 
         Intent i = new Intent(context, AutoTextMsgService.class);
+        i.setFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
         i.setAction(AutoTextMsgService.SERVICE_SEND_TEXT_MESSAGE);
         context.startService(i);
     }

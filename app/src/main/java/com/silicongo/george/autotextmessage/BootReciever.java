@@ -8,7 +8,7 @@ import android.os.PowerManager;
 import com.silicongo.george.autotextmessage.Debug.FileLog;
 
 public class BootReciever extends BroadcastReceiver {
-	private static final String TAG = "BootReciever";
+	private static final String TAG = "BootReceiver";
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -18,8 +18,14 @@ public class BootReciever extends BroadcastReceiver {
 		PowerManager.WakeLock wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "AppAlarmReceiver");
 		wl.acquire(120000);
 
-		Intent i = new Intent(context, AutoTextMsgService.class);
-        intent.setAction(AutoTextMsgService.SERVICE_QUERY_TEXT_MESSAGE);
-		context.startService(i);
+		if(BuildConfig.DEBUG){
+			Intent i = new Intent(context, MainActivity.class);
+			i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+			context.startActivity(i);
+		}else {
+			Intent i = new Intent(context, AutoTextMsgService.class);
+			intent.setAction(AutoTextMsgService.SERVICE_QUERY_TEXT_MESSAGE);
+			context.startService(i);
+		}
 	}
 }

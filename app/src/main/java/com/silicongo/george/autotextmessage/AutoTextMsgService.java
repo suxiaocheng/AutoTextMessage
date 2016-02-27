@@ -16,13 +16,16 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.telephony.SmsManager;
+import android.util.Log;
 import android.widget.Toast;
 
 import com.silicongo.george.autotextmessage.DataSet.TextMsgInfo;
 import com.silicongo.george.autotextmessage.Database.TextDbAdapter;
 import com.silicongo.george.autotextmessage.Debug.FileLog;
+import com.silicongo.george.autotextmessage.Misc.InfoService;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * Created by suxch on 2016/1/2.
@@ -69,13 +72,11 @@ public class AutoTextMsgService extends Service {
                 editor.putInt(SENDING_MSG_COUNT, sendMsgCount);
                 editor.commit();
 
+                startInfoService(null, 0);
+                startInfoService(info.get(TextMsgInfo.ROW_PHONE_NUMBER).getString() + "->" +
+                        info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString(), 3600000);
+
                 FileLog.d(TAG, "Sending Message Count: " + sendMsgCount);
-
-                try {
-                    wait(3000);
-                } catch (Exception e) {
-
-                }
             }
             // Stop the service using the startId, so that we don't stop
             // the service in the middle of handling another job
@@ -125,10 +126,13 @@ public class AutoTextMsgService extends Service {
                 editor.commit();
             }
         }
+        Intent broadcastIntent = new Intent(SERVICE_SEND_TEXT_MESSAGE);
+        PendingIntent pi = PendingIntent.getBroadcast(this, 0, broadcastIntent, 0);
+        AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
+        am.cancel(pi);
+
         TextMsgInfo info = getNextMsgSendPos();
         if (info != null) {
-            Intent broadcastIntent = new Intent(SERVICE_SEND_TEXT_MESSAGE);
-            PendingIntent pi = PendingIntent.getBroadcast(this, 0, broadcastIntent, 0);
             long offset = System.currentTimeMillis();
             long relative_offset = TextMsgInfo.getOffsetOfCurrentTime(info);
 
@@ -136,13 +140,13 @@ public class AutoTextMsgService extends Service {
             editor.putInt(NEXT_AVAIL_TEXT_MSG_ID, info.get(TextMsgInfo.ROW_ID).getInt());
             editor.commit();
 
-            offset += relative_offset * 60 * 1000;
+            offset += relative_offset*1000;
 
-            AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
             am.set(AlarmManager.RTC_WAKEUP, offset, pi);
 
-            FileLog.d(TAG, "Alarm time is set to: " + (relative_offset / 60)
-                    + ":" + (relative_offset % 60));
+            FileLog.d(TAG, "Alarm time is set to: " + (relative_offset / 3600)
+                    + ":" + ((relative_offset / 60) % 60) +
+                    ", Offset in second: " + relative_offset);
         }
         mServiceHandler.sendMessage(msg);
 
@@ -270,7 +274,7 @@ public class AutoTextMsgService extends Service {
                         match_item_count++;
                     }
                 }
-                FileLog.d(TAG, "Item: " + i + ", Offset: " + current_offset);
+                Log.d(TAG, "Item: " + i + ", Offset: " + current_offset);
             }
         }
 
@@ -281,5 +285,17 @@ public class AutoTextMsgService extends Service {
         }
 
         return availTextMsgInfo;
+    }
+
+    public void startInfoService(String info, int timeToDisplay){
+        Intent intent = new Intent(this, InfoService.class);
+        if(info == null) {
+            intent.setAction(InfoService.ACTION_PLAY);
+        }else{
+            intent.setAction(InfoService.ACTION_INFO);
+            intent.putExtra(InfoService.ACTION_INFO_MSG, info);
+            intent.putExtra(InfoService.ACTION_INFO_TIME, timeToDisplay);
+        }
+        startService(intent);
     }
 }
