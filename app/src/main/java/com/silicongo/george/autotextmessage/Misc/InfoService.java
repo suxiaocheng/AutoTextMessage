@@ -91,10 +91,11 @@ public class InfoService extends Service implements MediaPlayer.OnErrorListener,
 
     public void startForeground(String info, int id) {
         Notification notification = new Notification.Builder(getApplicationContext())
-                .setContentTitle("AutoSendMessage")
+                .setContentTitle(getPackageName())
                 .setContentText(info)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.mipmap.info))
+                .setAutoCancel(true)
                 .build();
 
         startForeground(id, notification);

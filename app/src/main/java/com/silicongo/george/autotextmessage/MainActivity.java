@@ -196,6 +196,11 @@ public class MainActivity extends AppCompatActivity implements AutoTestMsgAdapte
                     startAutoTextMsgService();
                 }
                 return true;
+            case R.id.settingItemDeleteAll:
+                mAdapter.removeAll();
+                adapter.deleteAllTextMsgInfo();
+                startAutoTextMsgService();
+                return true;
             default:
                 return super.onContextItemSelected(item);
         }
@@ -204,18 +209,6 @@ public class MainActivity extends AppCompatActivity implements AutoTestMsgAdapte
     public void startAutoTextMsgService(){
         Intent intent = new Intent(this, AutoTextMsgService.class);
         intent.setAction(AutoTextMsgService.SERVICE_QUERY_TEXT_MESSAGE);
-        startService(intent);
-    }
-
-    public void startInfoService(String info, int timeToDisplay){
-        Intent intent = new Intent(this, InfoService.class);
-        if(info == null) {
-            intent.setAction(InfoService.ACTION_PLAY);
-        }else{
-            intent.setAction(InfoService.ACTION_INFO);
-            intent.putExtra(InfoService.ACTION_INFO_MSG, info);
-            intent.putExtra(InfoService.ACTION_INFO_TIME, timeToDisplay);
-        }
         startService(intent);
     }
 }

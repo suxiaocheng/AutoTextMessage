@@ -48,6 +48,18 @@ public class AutoTextMsgService extends Service {
     private AutoTextMsgService msgService = this;
 
     private int sendMsgCount;
+    private int smsSendStatus;
+    private int smsDeliver;
+
+    /* dynamic create reciver */
+    private BroadcastReceiver sendReciver;
+    private BroadcastReceiver deliverReciver;
+
+    private PendingIntent sentPI;
+    private PendingIntent deliveredPI;
+
+    private String SENT = "SMS_SENT";
+    private String DELIVERED = "SMS_DELIVERED";
 
     // Handler that receives messages from the thread
     private final class ServiceHandler extends Handler {
@@ -73,8 +85,25 @@ public class AutoTextMsgService extends Service {
                 editor.commit();
 
                 startInfoService(null, 0);
+
+                smsSendStatus = -1;
+                smsDeliver = -1;
+                sendSMS(info.get(TextMsgInfo.ROW_PHONE_NUMBER).getString(),
+                        info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString());
+                /* Wait for the message sent or fail */
+                while (true) {
+                    synchronized ((Object) smsSendStatus) {
+                        if (smsSendStatus != -1) {
+                            break;
+                        }
+                    }
+                }
+
                 startInfoService(info.get(TextMsgInfo.ROW_PHONE_NUMBER).getString() + "->" +
-                        info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString(), 3600000);
+                                ((smsSendStatus == 0) ? "Success" : "Fail") +
+                                ". Msg: " +
+                                info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString() + "->",
+                        3600000);
 
                 FileLog.d(TAG, "Sending Message Count: " + sendMsgCount);
             }
@@ -100,6 +129,54 @@ public class AutoTextMsgService extends Service {
         // Get the HandlerThread's Looper and use it for our Handler
         mServiceLooper = thread.getLooper();
         mServiceHandler = new ServiceHandler(mServiceLooper);
+
+        sentPI = PendingIntent.getBroadcast(this, 0,
+                new Intent(SENT), 0);
+        deliveredPI = PendingIntent.getBroadcast(this, 0,
+                new Intent(DELIVERED), 0);
+
+        sendReciver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context arg0, Intent arg1) {
+                final String strSendStatus[] = {"OK", "Generic failure", "Radio off",
+                        "Null PDU", "No service", "Unknown"};
+                int result = getResultCode();
+                if (result == Activity.RESULT_OK) {
+                    result = 0x0;
+                }
+                if ((result < 0) || (result > strSendStatus.length)) {
+                    result = strSendStatus.length - 1;
+                }
+                Toast.makeText(getBaseContext(), strSendStatus[result],
+                        Toast.LENGTH_SHORT).show();
+                synchronized ((Object) smsSendStatus) {
+                    smsSendStatus = result;
+                }
+            }
+        };
+        registerReceiver(sendReciver, new IntentFilter(SENT));
+
+        deliverReciver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context arg0, Intent arg1) {
+                final String strDeliverStatus[] = {"SMS delivered", "SMS not delivered"};
+                int result = getResultCode();
+                switch (result) {
+                    case Activity.RESULT_OK:
+                        result = 0x0;
+                        break;
+                    case Activity.RESULT_CANCELED:
+                        result = 0x1;
+                        break;
+                }
+                Toast.makeText(getBaseContext(), strDeliverStatus[result],
+                        Toast.LENGTH_SHORT).show();
+                synchronized ((Object) smsDeliver) {
+                    smsDeliver = result;
+                }
+            }
+        };
+        registerReceiver(deliverReciver, new IntentFilter(DELIVERED));
     }
 
     @Override
@@ -140,7 +217,7 @@ public class AutoTextMsgService extends Service {
             editor.putInt(NEXT_AVAIL_TEXT_MSG_ID, info.get(TextMsgInfo.ROW_ID).getInt());
             editor.commit();
 
-            offset += relative_offset*1000;
+            offset += relative_offset * 1000;
 
             am.set(AlarmManager.RTC_WAKEUP, offset, pi);
 
@@ -163,60 +240,13 @@ public class AutoTextMsgService extends Service {
     @Override
     public void onDestroy() {
         adapter.close();
+        unregisterReceiver(sendReciver);
+        unregisterReceiver(deliverReciver);
         Toast.makeText(this, "Service Done", Toast.LENGTH_SHORT).show();
         FileLog.d(TAG, "Service Done");
     }
 
     private void sendSMS(String phoneNumber, String message) {
-        String SENT = "SMS_SENT";
-        String DELIVERED = "SMS_DELIVERED";
-        PendingIntent sentPI = PendingIntent.getBroadcast(this, 0,
-                new Intent(SENT), 0);
-        PendingIntent deliveredPI = PendingIntent.getBroadcast(this, 0,
-                new Intent(DELIVERED), 0);
-        registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context arg0, Intent arg1) {
-                switch (getResultCode()) {
-                    case Activity.RESULT_OK:
-                        Toast.makeText(getBaseContext(), "SMS sent",
-                                Toast.LENGTH_SHORT).show();
-                        break;
-                    case SmsManager.RESULT_ERROR_GENERIC_FAILURE:
-                        Toast.makeText(getBaseContext(), "Generic failure",
-                                Toast.LENGTH_SHORT).show();
-                        break;
-                    case SmsManager.RESULT_ERROR_NO_SERVICE:
-                        Toast.makeText(getBaseContext(), "No service",
-                                Toast.LENGTH_SHORT).show();
-                        break;
-                    case SmsManager.RESULT_ERROR_NULL_PDU:
-                        Toast.makeText(getBaseContext(), "Null PDU",
-                                Toast.LENGTH_SHORT).show();
-                        break;
-                    case SmsManager.RESULT_ERROR_RADIO_OFF:
-                        Toast.makeText(getBaseContext(), "Radio off",
-                                Toast.LENGTH_SHORT).show();
-                        break;
-                }
-            }
-        }, new IntentFilter(SENT));
-        registerReceiver(new BroadcastReceiver() {
-            @Override
-            public void onReceive(Context arg0, Intent arg1) {
-                switch (getResultCode()) {
-                    case Activity.RESULT_OK:
-                        Toast.makeText(getBaseContext(), "SMS delivered",
-                                Toast.LENGTH_SHORT).show();
-                        break;
-                    case Activity.RESULT_CANCELED:
-                        Toast.makeText(getBaseContext(), "SMS not delivered",
-                                Toast.LENGTH_SHORT).show();
-                        break;
-                }
-            }
-        }, new IntentFilter(DELIVERED));
-
         SmsManager sms = SmsManager.getDefault();
         sms.sendTextMessage(phoneNumber, null, message, sentPI, deliveredPI);
     }
@@ -287,11 +317,11 @@ public class AutoTextMsgService extends Service {
         return availTextMsgInfo;
     }
 
-    public void startInfoService(String info, int timeToDisplay){
+    public void startInfoService(String info, int timeToDisplay) {
         Intent intent = new Intent(this, InfoService.class);
-        if(info == null) {
+        if (info == null) {
             intent.setAction(InfoService.ACTION_PLAY);
-        }else{
+        } else {
             intent.setAction(InfoService.ACTION_INFO);
             intent.putExtra(InfoService.ACTION_INFO_MSG, info);
             intent.putExtra(InfoService.ACTION_INFO_TIME, timeToDisplay);

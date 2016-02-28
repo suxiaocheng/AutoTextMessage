@@ -56,6 +56,7 @@ public class AutoTestMsgAdapter extends RecyclerView.Adapter<AutoTestMsgAdapter.
             //menu.setHeaderTitle("Select The Action");
             menu.add(0, R.id.settingItemEdit, 0, R.string.edit);//groupId, itemId, order, title
             menu.add(0, R.id.settingItemDelete, 0, R.string.delete);
+            menu.add(0, R.id.settingItemDeleteAll, 0, R.string.delete_all);
         }
 
         @Override
@@ -145,6 +146,11 @@ public class AutoTestMsgAdapter extends RecyclerView.Adapter<AutoTestMsgAdapter.
         TextMsgInfo value = mDataset.remove(position);
         notifyItemRemoved(position);
         return value;
+    }
+
+    public void removeAll() {
+        mDataset.clear();
+        notifyDataSetChanged();
     }
 
     public TextMsgInfo get(int position) {
