@@ -5,6 +5,8 @@ import android.content.pm.PackageManager;
 import android.os.Environment;
 import android.util.Log;
 
+import com.silicongo.george.autotextmessage.BuildConfig;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -58,7 +60,8 @@ public class FileLog {
     static {
         /* Open the debug log file */
         if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-            logFileDir = Environment.getExternalStorageDirectory().toString() + File.separator + "Debug";
+            logFileDir = Environment.getExternalStorageDirectory().toString() + File.separator + "Debug" +
+                    File.separator + BuildConfig.APPLICATION_ID;
             logFileName = logFileDir + File.separator +"log.txt";
 
             fileLogFileDir = new File(logFileDir);

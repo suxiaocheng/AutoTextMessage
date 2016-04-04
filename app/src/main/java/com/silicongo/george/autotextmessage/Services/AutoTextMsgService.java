@@ -1,4 +1,4 @@
-package com.silicongo.george.autotextmessage;
+package com.silicongo.george.autotextmessage.Services;
 
 import android.app.Activity;
 import android.app.AlarmManager;
@@ -16,16 +16,15 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.telephony.SmsManager;
-import android.util.Log;
 import android.widget.Toast;
 
+import com.silicongo.george.autotextmessage.BuildConfig;
 import com.silicongo.george.autotextmessage.DataSet.TextMsgInfo;
 import com.silicongo.george.autotextmessage.Database.TextDbAdapter;
 import com.silicongo.george.autotextmessage.Debug.FileLog;
-import com.silicongo.george.autotextmessage.Misc.InfoService;
+import com.silicongo.george.autotextmessage.MainActivity;
 
 import java.util.ArrayList;
-import java.util.Objects;
 
 /**
  * Created by suxch on 2016/1/2.
@@ -51,7 +50,7 @@ public class AutoTextMsgService extends Service {
     private int smsSendStatus;
     private int smsDeliver;
 
-    /* dynamic create reciver */
+    /* dynamic create receiver */
     private BroadcastReceiver sendReciver;
     private BroadcastReceiver deliverReciver;
 
@@ -86,11 +85,12 @@ public class AutoTextMsgService extends Service {
 
                 startInfoService(null, 0);
 
+                /*
                 smsSendStatus = -1;
                 smsDeliver = -1;
                 sendSMS(info.get(TextMsgInfo.ROW_PHONE_NUMBER).getString(),
                         info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString());
-                /* Wait for the message sent or fail */
+                // Wait for the message sent or fail
                 while (true) {
                     synchronized ((Object) smsSendStatus) {
                         if (smsSendStatus != -1) {
@@ -98,7 +98,7 @@ public class AutoTextMsgService extends Service {
                         }
                     }
                 }
-
+                */
                 startInfoService(info.get(TextMsgInfo.ROW_PHONE_NUMBER).getString() + "->" +
                                 ((smsSendStatus == 0) ? "Success" : "Fail") +
                                 ". Msg: " +
@@ -109,6 +109,7 @@ public class AutoTextMsgService extends Service {
             }
             // Stop the service using the startId, so that we don't stop
             // the service in the middle of handling another job
+
             stopSelf(msg.arg2);
         }
     }
@@ -192,6 +193,19 @@ public class AutoTextMsgService extends Service {
         msg.arg2 = startId;
         msg.obj = null;
 
+        // Debug only, record the action invoke the services.
+        if(BuildConfig.DEBUG){
+            if(intent != null) {
+                String action = intent.getAction();
+                if (action == null) {
+                    action = "NULL";
+                }
+                FileLog.d(TAG, "Start Activity By Action: " + action);
+            }else{
+                FileLog.d(TAG, "Start Activity By Null intent");
+            }
+        }
+
         if ((intent != null) && (intent.getAction() == SERVICE_SEND_TEXT_MESSAGE)) {
             // For each start request, send a message to start a job and deliver the
             // start ID so we know which request we're stopping when we finish the job
@@ -243,7 +257,9 @@ public class AutoTextMsgService extends Service {
         unregisterReceiver(sendReciver);
         unregisterReceiver(deliverReciver);
         Toast.makeText(this, "Service Done", Toast.LENGTH_SHORT).show();
-        FileLog.d(TAG, "Service Done");
+        if(BuildConfig.DEBUG) {
+            FileLog.d(TAG, "Service Done");
+        }
     }
 
     private void sendSMS(String phoneNumber, String message) {
@@ -304,7 +320,7 @@ public class AutoTextMsgService extends Service {
                         match_item_count++;
                     }
                 }
-                Log.d(TAG, "Item: " + i + ", Offset: " + current_offset);
+                //Log.d(TAG, "Item: " + i + ", Offset: " + current_offset);
             }
         }
 

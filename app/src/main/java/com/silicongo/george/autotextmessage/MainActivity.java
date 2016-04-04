@@ -16,7 +16,7 @@ import android.widget.Button;
 import com.silicongo.george.autotextmessage.DataSet.TextMsgInfo;
 import com.silicongo.george.autotextmessage.DataSet.TextMsgInfoParcelable;
 import com.silicongo.george.autotextmessage.Database.TextDbAdapter;
-import com.silicongo.george.autotextmessage.Misc.InfoService;
+import com.silicongo.george.autotextmessage.Services.AutoTextMsgService;
 import com.silicongo.george.autotextmessage.setting.SettingItemActivity;
 
 import java.util.ArrayList;

@@ -16,31 +16,32 @@
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <service android:name=".AutoTextMsgService" />
+        <service android:name=".Services.AutoTextMsgService" />
 
         <activity
             android:name=".setting.SettingItemActivity"
             android:label="@string/title_activity_setting_item"
             android:theme="@style/AppTheme.NoActionBar" />
 
-        <receiver android:name=".SendingMsgReciver">
+        <receiver android:name=".Reciver.SendingMsgReciver">
             <intent-filter>
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
                 <action android:name="com.silicongo.george.SEND_TEXT_MESSAGE" />
             </intent-filter>
         </receiver>
-        <receiver android:name=".BootReciever">
+        <receiver android:name=".Reciver.BootReciever">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
 
         <service
-            android:name=".Misc.InfoService"
+            android:name=".Services.InfoService"
             android:enabled="true"
             android:exported="true"></service>
     </application>

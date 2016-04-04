@@ -1,11 +1,8 @@
-package com.silicongo.george.autotextmessage.Misc;
+package com.silicongo.george.autotextmessage.Services;
 
 import android.app.Notification;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.Handler;
@@ -14,12 +11,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
-import android.widget.Toast;
 
-import com.silicongo.george.autotextmessage.DataSet.TextMsgInfo;
-import com.silicongo.george.autotextmessage.Database.TextDbAdapter;
-import com.silicongo.george.autotextmessage.Debug.FileLog;
-import com.silicongo.george.autotextmessage.MainActivity;
 import com.silicongo.george.autotextmessage.R;
 
 public class InfoService extends Service implements MediaPlayer.OnErrorListener,

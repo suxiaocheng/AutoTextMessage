@@ -1,11 +1,14 @@
-package com.silicongo.george.autotextmessage;
+package com.silicongo.george.autotextmessage.Reciver;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.PowerManager;
 
+import com.silicongo.george.autotextmessage.BuildConfig;
 import com.silicongo.george.autotextmessage.Debug.FileLog;
+import com.silicongo.george.autotextmessage.MainActivity;
+import com.silicongo.george.autotextmessage.Services.AutoTextMsgService;
 
 public class BootReciever extends BroadcastReceiver {
 	private static final String TAG = "BootReceiver";
