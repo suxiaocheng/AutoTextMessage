@@ -34,7 +34,8 @@ public class InfoService extends Service implements MediaPlayer.OnErrorListener,
     private ServiceHandler mServiceHandler;
 
     private Object lockObj = new Object();
-    private Object handlerNeedExit = false;
+    private Object handlerNeedExit = new Object();
+    private boolean bhandlerNeedExit = false;
 
     public InfoService() {
     }
@@ -51,15 +52,15 @@ public class InfoService extends Service implements MediaPlayer.OnErrorListener,
             long endTimeMillis = System.currentTimeMillis() + msg.arg1;
 
             synchronized (handlerNeedExit) {
-                handlerNeedExit = false;
+                bhandlerNeedExit = false;
             }
 
             startForeground(displayMessage, msg.arg2);
 
             while (endTimeMillis > System.currentTimeMillis()) {
                 synchronized (handlerNeedExit) {
-                    if (handlerNeedExit == true) {
-                        handlerNeedExit = false;
+                    if (bhandlerNeedExit == true) {
+                        bhandlerNeedExit = false;
                         break;
                     }
                 }
@@ -136,7 +137,7 @@ public class InfoService extends Service implements MediaPlayer.OnErrorListener,
             if ((msg.obj != null) && (((String) msg.obj).compareTo("") != 0) && (msg.arg1 > 0)) {
                 mServiceHandler.removeCallbacksAndMessages(null);
                 synchronized (handlerNeedExit) {
-                    handlerNeedExit = true;
+                    bhandlerNeedExit = true;
                 }
 
                 mServiceHandler.sendMessage(msg);

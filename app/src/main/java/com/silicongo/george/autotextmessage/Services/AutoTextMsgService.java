@@ -47,7 +47,7 @@ public class AutoTextMsgService extends Service {
     private AutoTextMsgService msgService = this;
 
     private int sendMsgCount;
-    private int smsSendStatus;
+    private Integer smsSendStatus;
     private int smsDeliver;
 
     /* dynamic create receiver */
@@ -85,21 +85,25 @@ public class AutoTextMsgService extends Service {
 
                 startInfoService(null, 0);
 
-                /*
                 smsSendStatus = -1;
                 smsDeliver = -1;
                 sendSMS(info.get(TextMsgInfo.ROW_PHONE_NUMBER).getString(),
                         info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString());
                 // Wait for the message sent or fail
                 while (true) {
-                    synchronized ((Object) smsSendStatus) {
+                    synchronized ( smsSendStatus) {
                         if (smsSendStatus != -1) {
                             break;
                         }
                     }
+                    try {
+                        Thread.sleep(100);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        break;
+                    }
                 }
-                */
-                startInfoService(info.get(TextMsgInfo.ROW_PHONE_NUMBER).getString() + "->" +
+                startInfoService(smsSendStatus + ": " + info.get(TextMsgInfo.ROW_PHONE_NUMBER).getString() + "->" +
                                 ((smsSendStatus == 0) ? "Success" : "Fail") +
                                 ". Msg: " +
                                 info.get(TextMsgInfo.ROW_AVAIL_TEXT_MESSAGE + "0").getString() + "->",
@@ -150,7 +154,7 @@ public class AutoTextMsgService extends Service {
                 }
                 Toast.makeText(getBaseContext(), strSendStatus[result],
                         Toast.LENGTH_SHORT).show();
-                synchronized ((Object) smsSendStatus) {
+                synchronized (smsSendStatus) {
                     smsSendStatus = result;
                 }
             }
@@ -194,14 +198,14 @@ public class AutoTextMsgService extends Service {
         msg.obj = null;
 
         // Debug only, record the action invoke the services.
-        if(BuildConfig.DEBUG){
-            if(intent != null) {
+        if (BuildConfig.DEBUG) {
+            if (intent != null) {
                 String action = intent.getAction();
                 if (action == null) {
                     action = "NULL";
                 }
                 FileLog.d(TAG, "Start Activity By Action: " + action);
-            }else{
+            } else {
                 FileLog.d(TAG, "Start Activity By Null intent");
             }
         }
@@ -257,7 +261,7 @@ public class AutoTextMsgService extends Service {
         unregisterReceiver(sendReciver);
         unregisterReceiver(deliverReciver);
         Toast.makeText(this, "Service Done", Toast.LENGTH_SHORT).show();
-        if(BuildConfig.DEBUG) {
+        if (BuildConfig.DEBUG) {
             FileLog.d(TAG, "Service Done");
         }
     }
